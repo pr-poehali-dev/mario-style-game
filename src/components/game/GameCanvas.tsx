@@ -17,9 +17,13 @@ interface GameCanvasProps {
   gameOver: boolean;
   hasDoubleJump: boolean;
   touchDirection: 'left' | 'right' | null;
+  currentLevel: number;
+  totalLevels: number;
+  background: string;
   onSetTouchDirection: (direction: 'left' | 'right' | null) => void;
   onJump: () => void;
   onEndGame: () => void;
+  onNextLevel: () => void;
 }
 
 const GameCanvas = ({
@@ -35,14 +39,21 @@ const GameCanvas = ({
   gameOver,
   hasDoubleJump,
   touchDirection,
+  currentLevel,
+  totalLevels,
+  background,
   onSetTouchDirection,
   onJump,
-  onEndGame
+  onEndGame,
+  onNextLevel
 }: GameCanvasProps) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center bg-white/95 backdrop-blur p-4 rounded-2xl shadow-xl flex-wrap gap-4">
         <div className="flex gap-4 items-center flex-wrap">
+          <Badge className="bg-[#AA96DA] text-white text-xl px-4 py-2">
+            🏆 Уровень {currentLevel}/{totalLevels}
+          </Badge>
           <div className="flex gap-2">
             {[...Array(lives)].map((_, i) => (
               <span key={i} className="text-3xl">❤️</span>
@@ -70,7 +81,7 @@ const GameCanvas = ({
         </div>
       </div>
 
-      <Card className="relative h-[600px] bg-gradient-to-b from-sky-300 to-sky-200 overflow-hidden shadow-2xl">
+      <Card className={`relative h-[600px] bg-gradient-to-b ${background} overflow-hidden shadow-2xl`}>
         {platforms.map((platform, i) => (
           <div
             key={i}
@@ -128,16 +139,36 @@ const GameCanvas = ({
         {bossDefeated && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
             <Card className="p-8 text-center bg-white shadow-2xl">
-              <h2 className="text-5xl mb-4 text-[#FF6B6B]">🎉 Победа!</h2>
+              <h2 className="text-5xl mb-4 text-[#FF6B6B]">🎉 Уровень пройден!</h2>
               <p className="text-2xl mb-4">Босс повержен!</p>
-              <p className="text-xl mb-2">Финальный счёт: {score}</p>
+              <p className="text-xl mb-2">Счёт: {score}</p>
               <p className="text-xl mb-6">Монеты: {coins}</p>
-              <button
-                onClick={onEndGame}
-                className="bg-[#FF6B6B] text-white text-xl px-8 py-3 rounded-full hover:bg-[#ff5252] transition-all"
-              >
-                В меню
-              </button>
+              {currentLevel < totalLevels ? (
+                <div className="flex gap-4 justify-center">
+                  <button
+                    onClick={onNextLevel}
+                    className="bg-[#4FCDC4] text-white text-xl px-8 py-3 rounded-full hover:bg-[#3db3aa] transition-all"
+                  >
+                    Следующий уровень →
+                  </button>
+                  <button
+                    onClick={onEndGame}
+                    className="bg-[#FF6B6B] text-white text-xl px-8 py-3 rounded-full hover:bg-[#ff5252] transition-all"
+                  >
+                    В меню
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-2xl mb-6 text-green-600 font-bold">🏆 Все уровни пройдены!</p>
+                  <button
+                    onClick={onEndGame}
+                    className="bg-[#FF6B6B] text-white text-xl px-8 py-3 rounded-full hover:bg-[#ff5252] transition-all"
+                  >
+                    В меню
+                  </button>
+                </div>
+              )}
             </Card>
           </div>
         )}

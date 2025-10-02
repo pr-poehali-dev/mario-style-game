@@ -4,12 +4,14 @@ import GameCanvas from '@/components/game/GameCanvas';
 import Shop from '@/components/game/Shop';
 import { Position, PowerUp, ShopItem } from '@/components/game/types';
 import { levels, getLevel, getTotalLevels } from '@/components/game/levels';
+import { saveGame, loadGame, getDefaultSave } from '@/lib/gameStorage';
 
 const Index = () => {
   const [playerPos, setPlayerPos] = useState<Position>({ x: 50, y: 400 });
   const [velocity, setVelocity] = useState<Position>({ x: 0, y: 0 });
   const [keys, setKeys] = useState<Set<string>>(new Set());
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
   const [coins, setCoins] = useState(0);
   const [lives, setLives] = useState(3);
   const [maxLives, setMaxLives] = useState(3);
@@ -22,10 +24,38 @@ const Index = () => {
   const [hasDoubleJump, setHasDoubleJump] = useState(false);
   const [touchDirection, setTouchDirection] = useState<'left' | 'right' | null>(null);
   const [currentLevelId, setCurrentLevelId] = useState(1);
+  const [completedLevels, setCompletedLevels] = useState<number[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const currentLevel = getLevel(currentLevelId);
   const [boss, setBoss] = useState(currentLevel!.boss);
   const [gameCoins, setGameCoins] = useState(currentLevel!.coins);
+
+  useEffect(() => {
+    const saved = loadGame();
+    if (saved) {
+      setCoins(saved.coins);
+      setMaxLives(saved.maxLives);
+      setHasDoubleJump(saved.hasDoubleJump);
+      setCurrentLevelId(saved.currentLevel);
+      setHighScore(saved.highScore);
+      setCompletedLevels(saved.completedLevels);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      saveGame({
+        coins,
+        maxLives,
+        hasDoubleJump,
+        currentLevel: currentLevelId,
+        highScore,
+        completedLevels
+      });
+    }
+  }, [coins, maxLives, hasDoubleJump, currentLevelId, highScore, completedLevels, isLoaded]);
 
   const shopItems: ShopItem[] = [
     { id: 'life', name: 'Дополнительная жизнь', icon: '❤️', cost: 100, description: '+1 жизнь', type: 'extraLife' },
@@ -229,11 +259,20 @@ const Index = () => {
 
   const nextLevel = () => {
     const newLevelId = currentLevelId + 1;
+    if (!completedLevels.includes(currentLevelId)) {
+      setCompletedLevels(prev => [...prev, currentLevelId]);
+    }
+    if (score > highScore) {
+      setHighScore(score);
+    }
     setCurrentLevelId(newLevelId);
     loadLevel(newLevelId);
   };
 
   const endGame = () => {
+    if (score > highScore) {
+      setHighScore(score);
+    }
     setGameStarted(false);
   };
 
@@ -244,6 +283,8 @@ const Index = () => {
           <GameMenu
             coins={coins}
             hasDoubleJump={hasDoubleJump}
+            highScore={highScore}
+            completedLevels={completedLevels}
             onStartGame={startGame}
             onOpenShop={() => setShopOpen(true)}
           />

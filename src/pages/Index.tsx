@@ -5,6 +5,7 @@ import Shop from '@/components/game/Shop';
 import { Position, PowerUp, ShopItem } from '@/components/game/types';
 import { levels, getLevel, getTotalLevels } from '@/components/game/levels';
 import { saveGame, loadGame, getDefaultSave } from '@/lib/gameStorage';
+import { getGamepadState, isGamepadConnected } from '@/lib/gamepad';
 
 const Index = () => {
   const [playerPos, setPlayerPos] = useState<Position>({ x: 50, y: 400 });
@@ -26,6 +27,8 @@ const Index = () => {
   const [currentLevelId, setCurrentLevelId] = useState(1);
   const [completedLevels, setCompletedLevels] = useState<number[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [lastJumpState, setLastJumpState] = useState(false);
   
   const currentLevel = getLevel(currentLevelId);
   const [boss, setBoss] = useState(currentLevel!.boss);
@@ -130,14 +133,23 @@ const Index = () => {
     const gameLoop = setInterval(() => {
       setPowerUps(prev => prev.filter(p => p.endTime > Date.now()));
 
+      const gamepadState = getGamepadState();
+      setGamepadConnected(gamepadState.connected);
+
+      if (gamepadState.jump && !lastJumpState && jumpsLeft > 0) {
+        setVelocity(v => ({ ...v, y: JUMP_STRENGTH }));
+        setJumpsLeft(j => j - 1);
+      }
+      setLastJumpState(gamepadState.jump);
+
       setVelocity(prev => {
         let newVelX = 0;
         const speedMultiplier = powerUps.some(p => p.type === 'speed') ? 1.5 : 1;
 
-        if (keys.has('arrowleft') || keys.has('a') || touchDirection === 'left') {
+        if (keys.has('arrowleft') || keys.has('a') || touchDirection === 'left' || gamepadState.left) {
           newVelX = -MOVE_SPEED * speedMultiplier;
         }
-        if (keys.has('arrowright') || keys.has('d') || touchDirection === 'right') {
+        if (keys.has('arrowright') || keys.has('d') || touchDirection === 'right' || gamepadState.right) {
           newVelX = MOVE_SPEED * speedMultiplier;
         }
 
@@ -234,7 +246,7 @@ const Index = () => {
     }, 1000 / 60);
 
     return () => clearInterval(gameLoop);
-  }, [gameStarted, velocity, keys, powerUps, boss, gameOver, hasDoubleJump, touchDirection, currentLevel]);
+  }, [gameStarted, velocity, keys, powerUps, boss, gameOver, hasDoubleJump, touchDirection, currentLevel, jumpsLeft, lastJumpState]);
 
   const loadLevel = (levelId: number) => {
     const level = getLevel(levelId);
@@ -285,6 +297,7 @@ const Index = () => {
             hasDoubleJump={hasDoubleJump}
             highScore={highScore}
             completedLevels={completedLevels}
+            gamepadConnected={gamepadConnected}
             onStartGame={startGame}
             onOpenShop={() => setShopOpen(true)}
           />
